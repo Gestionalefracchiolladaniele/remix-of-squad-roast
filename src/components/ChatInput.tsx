@@ -10,7 +10,7 @@ interface ChatInputProps {
   hasMessages?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, disabled, interactive }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onExport, disabled, interactive, hasMessages }) => {
   const [text, setText] = useState('');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
