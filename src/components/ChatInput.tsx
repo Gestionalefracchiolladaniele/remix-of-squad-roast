@@ -4,8 +4,10 @@ import { Send, Image, Smile, X } from 'lucide-react';
 interface ChatInputProps {
   onSendMessage: (text: string, file?: File) => void;
   onUploadPhoto: (file: File, text?: string) => void;
+  onExport?: () => void;
   disabled?: boolean;
   interactive: boolean;
+  hasMessages?: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, disabled, interactive }) => {
