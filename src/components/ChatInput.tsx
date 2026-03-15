@@ -1,14 +1,16 @@
 import React, { useRef, useState } from 'react';
-import { Send, Image, Smile, X } from 'lucide-react';
+import { Send, Image, Smile, X, Download } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (text: string, file?: File) => void;
   onUploadPhoto: (file: File, text?: string) => void;
+  onExport?: () => void;
   disabled?: boolean;
   interactive: boolean;
+  hasMessages?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, disabled, interactive }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onExport, disabled, interactive, hasMessages }) => {
   const [text, setText] = useState('');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -94,6 +96,15 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, dis
             >
               <Send className="w-4 h-4" />
             </button>
+            {hasMessages && onExport && (
+              <button
+                onClick={onExport}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                title="Esporta per Social"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+            )}
           </>
         ) : (
           <div className="flex-1 text-center text-xs text-muted-foreground py-2">

@@ -372,6 +372,37 @@ const Index = () => {
     toast.success('Preset eliminato');
   }, [deletePreset]);
 
+  const handleExport = useCallback(() => {
+    if (messages.length === 0) return;
+    const exportData = {
+      groupName,
+      groupType,
+      messages: messages.map(msg => {
+        const char = getCharById(msg.characterId);
+        const avatarFile = char?.avatar ? char.avatar.split('/').pop() || '' : '';
+        return {
+          id: msg.id,
+          characterId: msg.isUser ? 'user' : msg.characterId,
+          characterName: msg.isUser ? 'Tu' : (char?.name || msg.characterId),
+          emoji: msg.isUser ? '👤' : (char?.emoji || ''),
+          color: msg.isUser ? '' : (char?.color || ''),
+          avatar: msg.isUser ? '' : avatarFile,
+          text: msg.text,
+          timestamp: msg.timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+          isUser: msg.isUser,
+        };
+      }),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Export scaricato!');
+  }, [messages, groupName, groupType, allCharacters]);
+
   const headerChars = chatMode === 'single' ? characters : allCharacters;
 
   return (
@@ -441,8 +472,10 @@ const Index = () => {
       <ChatInput
         onSendMessage={handleSendMessage}
         onUploadPhoto={handleUploadPhoto}
+        onExport={handleExport}
         disabled={isRoasting}
         interactive={interactive}
+        hasMessages={messages.length > 0}
       />
 
       <SettingsDialog
