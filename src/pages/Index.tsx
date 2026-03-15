@@ -472,8 +472,10 @@ const Index = () => {
       <ChatInput
         onSendMessage={handleSendMessage}
         onUploadPhoto={handleUploadPhoto}
+        onExport={handleExport}
         disabled={isRoasting}
         interactive={interactive}
+        hasMessages={messages.length > 0}
       />
 
       <SettingsDialog
