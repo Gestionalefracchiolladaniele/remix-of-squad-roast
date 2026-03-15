@@ -1,0 +1,77 @@
+import React from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Character } from '@/lib/characters';
+
+interface ChatBubbleProps {
+  text: string;
+  character?: Character;
+  isUser: boolean;
+  timestamp: Date;
+  imageUrl?: string;
+  replyTo?: string;
+  animationDelay?: number;
+}
+
+const ChatBubble: React.FC<ChatBubbleProps> = ({
+  text,
+  character,
+  isUser,
+  timestamp,
+  imageUrl,
+  replyTo,
+  animationDelay = 0,
+}) => {
+  const timeStr = timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div
+      className={`flex gap-2 px-4 py-1 animate-bubble-in ${isUser ? 'justify-end' : 'justify-start'}`}
+      style={{ animationDelay: `${animationDelay}ms` }}
+    >
+      {!isUser && character && (
+        <Avatar className="w-7 h-7 mt-1 shrink-0">
+          <AvatarImage src={character.avatar} alt={character.name} />
+          <AvatarFallback className="text-xs">{character.emoji}</AvatarFallback>
+        </Avatar>
+      )}
+
+      <div
+        className={`relative max-w-[75%] rounded-lg px-3 py-1.5 ${
+          isUser
+            ? 'bg-wa-bubble-out rounded-tr-none'
+            : 'bg-wa-bubble-in rounded-tl-none'
+        }`}
+      >
+        {/* Character name */}
+        {!isUser && character && (
+          <p className="text-xs font-semibold mb-0.5" style={{ color: `hsl(${character.color})` }}>
+            {character.name} {character.emoji}
+          </p>
+        )}
+
+        {/* Reply bar */}
+        {replyTo && (
+          <div className="border-l-2 border-primary pl-2 mb-1 py-1 bg-secondary/30 rounded-r text-xs text-muted-foreground truncate">
+            {replyTo}
+          </div>
+        )}
+
+        {/* Image */}
+        {imageUrl && (
+          <img src={imageUrl} alt="Uploaded" className="rounded-md mb-1 max-w-full max-h-64 object-cover" />
+        )}
+
+        {/* Text */}
+        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{text}</p>
+
+        {/* Time */}
+        <p className="text-[10px] text-muted-foreground text-right mt-0.5 -mb-0.5">
+          {timeStr}
+          {isUser && <span className="ml-1 text-primary">✓✓</span>}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default ChatBubble;
