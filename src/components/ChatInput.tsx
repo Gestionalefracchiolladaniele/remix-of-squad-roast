@@ -96,6 +96,15 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onE
             >
               <Send className="w-4 h-4" />
             </button>
+            {hasMessages && onExport && (
+              <button
+                onClick={onExport}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                title="Esporta per Social"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+            )}
           </>
         ) : (
           <div className="flex-1 text-center text-xs text-muted-foreground py-2">
