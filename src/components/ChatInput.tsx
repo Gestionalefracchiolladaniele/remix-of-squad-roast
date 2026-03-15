@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Send, Image, Smile, X } from 'lucide-react';
+import { Send, Image, Smile, X, Download } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (text: string, file?: File) => void;
