@@ -56,6 +56,31 @@ const Index = () => {
     scrollToBottom();
   }, [messages, typingChar, scrollToBottom]);
 
+  // Auto-load first saved preset for each group type on mount
+  useEffect(() => {
+    if (presets.length === 0) return;
+    const types: { type: GroupType; setChars: typeof setFemaleChars; defaults: Character[] }[] = [
+      { type: 'female', setChars: setFemaleChars, defaults: defaultFemaleCharacters },
+      { type: 'male', setChars: setMaleChars, defaults: defaultMaleCharacters },
+      { type: 'vip', setChars: setVipChars, defaults: defaultVipCharacters },
+    ];
+    for (const { type, setChars, defaults } of types) {
+      const preset = presets.find(p => p.group_type === type);
+      if (preset) {
+        const merged = preset.characters.map((pc, i) => {
+          const def = defaults.find(d => d.id === pc.id) || defaults[i];
+          return {
+            ...pc,
+            avatar: pc.avatar || def?.avatar || '',
+            color: pc.color || def?.color || '',
+            colorClass: pc.colorClass || def?.colorClass || '',
+          };
+        });
+        setChars(merged);
+      }
+    }
+  }, [presets]);
+
   useEffect(() => {
     if (messages.length > 0) {
       const timeout = setTimeout(() => {
@@ -66,7 +91,7 @@ const Index = () => {
     }
   }, [messages, groupType, groupName, roastLevel, currentSessionId, saveSession]);
 
-  const handleGroupTypeChange = (type: GroupType) => {
+  const handleGroupTypeChange = useCallback((type: GroupType) => {
     setGroupType(type);
     setGroupName(defaultGroupNames[type]);
     setMessages([]);
@@ -74,7 +99,24 @@ const Index = () => {
     setIsRoasting(false);
     setCurrentSessionId(null);
     setSelectedSingleCharIndex(0);
-  };
+
+    // Auto-load first saved preset for this group type
+    const matchingPreset = presets.find(p => p.group_type === type);
+    if (matchingPreset) {
+      const defaults = type === 'female' ? defaultFemaleCharacters : type === 'male' ? defaultMaleCharacters : defaultVipCharacters;
+      const setChars = type === 'female' ? setFemaleChars : type === 'male' ? setMaleChars : setVipChars;
+      const merged = matchingPreset.characters.map((pc, i) => {
+        const def = defaults.find(d => d.id === pc.id) || defaults[i];
+        return {
+          ...pc,
+          avatar: pc.avatar || def?.avatar || '',
+          color: pc.color || def?.color || '',
+          colorClass: pc.colorClass || def?.colorClass || '',
+        };
+      });
+      setChars(merged);
+    }
+  }, [presets]);
 
   const handleChatModeChange = (mode: ChatMode) => {
     setChatMode(mode);
