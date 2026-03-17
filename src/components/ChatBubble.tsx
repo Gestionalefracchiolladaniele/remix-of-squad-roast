@@ -21,6 +21,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   imageUrl,
   replyTo,
   animationDelay = 0,
+  onDoubleClick,
 }) => {
   const timeStr = timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
