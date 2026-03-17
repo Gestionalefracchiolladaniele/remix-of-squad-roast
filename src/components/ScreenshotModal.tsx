@@ -22,25 +22,25 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
       onDoubleClick={onClose}
     >
-      {/* Tight chat background only around the bubble */}
-      <div className="inline-block px-3 py-4 rounded-xl wa-pattern">
-        <div className={`flex gap-2 px-4 py-1 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+      {/* Full-width chat strip — no rounding, just the wa-pattern background */}
+      <div className="w-full wa-pattern py-3">
+        <div className={`flex gap-2 px-3 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
           {!message.isUser && character && (
-            <Avatar className="w-8 h-8 mt-1 shrink-0">
+            <Avatar className="w-9 h-9 mt-1 shrink-0">
               <AvatarImage src={character.avatar} alt={character.name} />
               <AvatarFallback className="text-xs">{character.emoji}</AvatarFallback>
             </Avatar>
           )}
 
           <div
-            className={`relative max-w-[85%] rounded-lg px-3 py-2 ${
+            className={`relative rounded-lg px-3 py-2 ${
               message.isUser
-                ? 'bg-wa-bubble-out rounded-tr-none'
-                : 'bg-wa-bubble-in rounded-tl-none'
+                ? 'bg-wa-bubble-out rounded-tr-none max-w-[80%]'
+                : 'bg-wa-bubble-in rounded-tl-none max-w-[80%]'
             }`}
           >
             {!message.isUser && character && (
-              <p className="text-xs font-semibold mb-0.5" style={{ color: `hsl(${character.color})` }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: `hsl(${character.color})` }}>
                 {character.name} {character.emoji}
               </p>
             )}
@@ -55,9 +55,9 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
               <img src={message.imageUrl} alt="" className="rounded-md mb-1 max-w-full max-h-72 object-cover" />
             )}
 
-            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{message.text}</p>
+            <p className="text-[15px] text-foreground leading-relaxed whitespace-pre-wrap">{message.text}</p>
 
-            <p className="text-[10px] text-muted-foreground text-right mt-0.5 -mb-0.5">
+            <p className="text-[11px] text-muted-foreground text-right mt-0.5 -mb-0.5">
               {timeStr}
               {message.isUser && <span className="ml-1 text-primary">✓✓</span>}
             </p>
