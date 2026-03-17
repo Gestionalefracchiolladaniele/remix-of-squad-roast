@@ -1,7 +1,6 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Character } from '@/lib/characters';
-import { X } from 'lucide-react';
 
 interface ScreenshotModalProps {
   message: {
@@ -21,22 +20,11 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
-      onClick={onClose}
+      onDoubleClick={onClose}
     >
-      {/* Close button */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-[101] p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors"
-      >
-        <X className="w-5 h-5" />
-      </button>
-
-      {/* Message bubble */}
-      <div
-        className="max-w-[85%] w-full max-w-md px-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className={`flex gap-2 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+      {/* Chat-like area with wa-pattern background */}
+      <div className="w-full max-w-md px-2 py-6 rounded-lg wa-pattern">
+        <div className={`flex gap-2 px-4 py-1 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
           {!message.isUser && character && (
             <Avatar className="w-8 h-8 mt-1 shrink-0">
               <AvatarImage src={character.avatar} alt={character.name} />
