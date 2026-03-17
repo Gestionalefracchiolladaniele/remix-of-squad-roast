@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ChatHeader from '@/components/ChatHeader';
 import ChatBubble from '@/components/ChatBubble';
+import ScreenshotModal from '@/components/ScreenshotModal';
 import TypingIndicator from '@/components/TypingIndicator';
 import ChatInput from '@/components/ChatInput';
 import SettingsDialog from '@/components/SettingsDialog';
@@ -34,6 +35,7 @@ const Index = () => {
   );
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [importedUserMessages, setImportedUserMessages] = useState<{ order: number; text: string; time?: string }[]>([]);
+  const [screenshotMsg, setScreenshotMsg] = useState<ChatMessage | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -500,6 +502,7 @@ const Index = () => {
             imageUrl={msg.imageUrl}
             replyTo={msg.replyTo}
             animationDelay={0}
+            onDoubleClick={() => setScreenshotMsg(msg)}
           />
         ))}
 
@@ -546,6 +549,14 @@ const Index = () => {
         onSelectedSingleCharChange={setSelectedSingleCharIndex}
         onImportUserMessages={setImportedUserMessages}
       />
+
+      {screenshotMsg && (
+        <ScreenshotModal
+          message={screenshotMsg}
+          character={getCharById(screenshotMsg.characterId)}
+          onClose={() => setScreenshotMsg(null)}
+        />
+      )}
     </div>
   );
 };

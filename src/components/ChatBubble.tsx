@@ -10,6 +10,7 @@ interface ChatBubbleProps {
   imageUrl?: string;
   replyTo?: string;
   animationDelay?: number;
+  onDoubleClick?: () => void;
 }
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({
@@ -20,13 +21,15 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   imageUrl,
   replyTo,
   animationDelay = 0,
+  onDoubleClick,
 }) => {
   const timeStr = timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div
-      className={`flex gap-2 px-4 py-1 animate-bubble-in ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={`flex gap-2 px-4 py-1 animate-bubble-in cursor-pointer select-none ${isUser ? 'justify-end' : 'justify-start'}`}
       style={{ animationDelay: `${animationDelay}ms` }}
+      onDoubleClick={onDoubleClick}
     >
       {!isUser && character && (
         <Avatar className="w-7 h-7 mt-1 shrink-0">
