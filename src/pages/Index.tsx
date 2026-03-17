@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ChatHeader from '@/components/ChatHeader';
 import ChatBubble from '@/components/ChatBubble';
+import ScreenshotModal from '@/components/ScreenshotModal';
 import TypingIndicator from '@/components/TypingIndicator';
 import ChatInput from '@/components/ChatInput';
 import SettingsDialog from '@/components/SettingsDialog';
