@@ -103,7 +103,7 @@ const parseConversationText = (text: string, characters: Character[]): {
         charMessages[matchedChar.id] = { texts: [], orders: [] };
       }
       charMessages[matchedChar.id].texts.push(message);
-      charMessages[matchedChar.id].orders.push(globalOrder);
+      charMessages[matchedChar.id].orders.push(order);
       globalOrder++;
     } else {
       unmatched.push(rawName);

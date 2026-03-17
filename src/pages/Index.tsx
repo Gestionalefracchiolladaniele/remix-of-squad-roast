@@ -206,11 +206,11 @@ const Index = () => {
         }
       }
 
-      // Add imported user messages ("TU")
+      // Add imported user messages ("TU") - use their own order directly
       for (const um of importedUserMessages) {
         messageSlots.push({
           charId: 'user',
-          order: um.order * 100 - 50, // interleave with char orders
+          order: um.order,
           text: um.text,
           time: um.time,
           isUser: true,
