@@ -35,6 +35,7 @@ const Index = () => {
   );
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [importedUserMessages, setImportedUserMessages] = useState<{ order: number; text: string; time?: string }[]>([]);
+  const [screenshotMsg, setScreenshotMsg] = useState<ChatMessage | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const {
