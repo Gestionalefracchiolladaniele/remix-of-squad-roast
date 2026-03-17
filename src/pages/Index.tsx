@@ -176,12 +176,12 @@ const Index = () => {
       
       for (const c of orderedChars) {
         if (c.customMessages && c.customMessages.length > 0) {
-          // Use custom messages array
+          // Use custom messages array - use each message's own order for correct sequencing
           const sorted = [...c.customMessages].sort((a, b) => a.order - b.order);
-          sorted.forEach((cm, i) => {
+          sorted.forEach((cm) => {
             messageSlots.push({
               charId: c.id,
-              order: (c.order ?? 99) * 100 + i,
+              order: cm.order,
               text: cm.text || undefined,
               image: cm.image || undefined,
               time: cm.time || undefined,
