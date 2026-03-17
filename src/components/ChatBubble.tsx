@@ -27,8 +27,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
 
   return (
     <div
-      className={`flex gap-2 px-4 py-1 animate-bubble-in ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={`flex gap-2 px-4 py-1 animate-bubble-in cursor-pointer select-none ${isUser ? 'justify-end' : 'justify-start'}`}
       style={{ animationDelay: `${animationDelay}ms` }}
+      onDoubleClick={onDoubleClick}
     >
       {!isUser && character && (
         <Avatar className="w-7 h-7 mt-1 shrink-0">
