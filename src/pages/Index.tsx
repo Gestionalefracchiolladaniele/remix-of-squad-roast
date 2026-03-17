@@ -502,6 +502,7 @@ const Index = () => {
             imageUrl={msg.imageUrl}
             replyTo={msg.replyTo}
             animationDelay={0}
+            onDoubleClick={() => setScreenshotMsg(msg)}
           />
         ))}
 
