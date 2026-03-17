@@ -22,8 +22,8 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
       onDoubleClick={onClose}
     >
-      {/* Chat-like area with wa-pattern background */}
-      <div className="w-full max-w-md px-2 py-6 rounded-lg wa-pattern">
+      {/* Tight chat background only around the bubble */}
+      <div className="inline-block px-3 py-4 rounded-xl wa-pattern">
         <div className={`flex gap-2 px-4 py-1 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
           {!message.isUser && character && (
             <Avatar className="w-8 h-8 mt-1 shrink-0">
