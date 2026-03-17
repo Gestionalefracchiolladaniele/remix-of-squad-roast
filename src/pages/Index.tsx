@@ -549,6 +549,14 @@ const Index = () => {
         onSelectedSingleCharChange={setSelectedSingleCharIndex}
         onImportUserMessages={setImportedUserMessages}
       />
+
+      {screenshotMsg && (
+        <ScreenshotModal
+          message={screenshotMsg}
+          character={getCharById(screenshotMsg.characterId)}
+          onClose={() => setScreenshotMsg(null)}
+        />
+      )}
     </div>
   );
 };
