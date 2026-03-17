@@ -82,7 +82,7 @@ const parseConversationText = (text: string, characters: Character[]): {
     
     // Check if it's a user message (TU)
     if (rawName.toUpperCase() === 'TU') {
-      userMessages.push({ order: globalOrder, text: message });
+      userMessages.push({ order, text: message });
       globalOrder++;
       continue;
     }
