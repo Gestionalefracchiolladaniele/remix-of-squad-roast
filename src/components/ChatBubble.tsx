@@ -10,6 +10,7 @@ interface ChatBubbleProps {
   imageUrl?: string;
   replyTo?: string;
   animationDelay?: number;
+  onDoubleClick?: () => void;
 }
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({
