@@ -66,8 +66,8 @@ const parseConversationText = (text: string, characters: Character[]): {
   const userMessages: { order: number; text: string }[] = [];
   const unmatched: string[] = [];
   
-  // Parse each line: formats like "1. NAME: message", "NAME: message", "1. NAME message"
-  const lineRegex = /^(?:\d+\.\s*)?([^:]+?):\s*(.+)$/;
+  // Parse each line: formats like "1. NAME: message", "1 NAME: message", "NAME: message"
+  const lineRegex = /^(?:(\d+)[.\s]\s*)?([^:]+?):\s*(.+)$/;
   
   let globalOrder = 1;
   
@@ -75,8 +75,10 @@ const parseConversationText = (text: string, characters: Character[]): {
     const match = line.trim().match(lineRegex);
     if (!match) continue;
     
-    const rawName = match[1].trim();
-    const message = match[2].trim();
+    const explicitOrder = match[1] ? parseInt(match[1], 10) : null;
+    const rawName = match[2].trim();
+    const message = match[3].trim();
+    const order = explicitOrder ?? globalOrder;
     
     // Check if it's a user message (TU)
     if (rawName.toUpperCase() === 'TU') {
