@@ -9,15 +9,14 @@ import avatarGhigghion from '@/assets/avatar-ghigghion.jpg';
 import avatarSquagghiat from '@/assets/avatar-squagghiat.jpg';
 import avatarRkknid from '@/assets/avatar-rkknid.jpg';
 
-export type GroupType = 'female' | 'male' | 'vip';
-export type RoastLevel = 'soft' | 'medium' | 'savage';
+export type GroupType = 'female' | 'male' | 'both';
 export type ChatMode = 'group' | 'single';
 
 export interface CharacterMessage {
   text: string;
-  image?: string; // optional image to send with this message
-  order: number; // order within the sequence
-  time?: string; // custom time HH:MM format
+  image?: string;
+  order: number;
+  time?: string;
 }
 
 export interface Character {
@@ -28,9 +27,9 @@ export interface Character {
   color: string;
   colorClass: string;
   avatar: string;
-  customMessage?: string; // legacy single message
-  customImage?: string; // legacy single image
-  customMessages?: CharacterMessage[]; // multiple messages support
+  customMessage?: string;
+  customImage?: string;
+  customMessages?: CharacterMessage[];
   order?: number;
 }
 
@@ -60,16 +59,13 @@ export const defaultMaleCharacters: Character[] = [
   { id: 'rkknid', name: 'RKKNID', emoji: '💁‍♀️', role: 'Il Serpente', color: 'var(--char-orange-alt)', colorClass: 'bg-char-orange-alt', avatar: avatarRkknid },
 ];
 
-export const defaultVipCharacters: Character[] = [
-  { id: 'vip1', name: 'IL BOSS', emoji: '👑', role: 'Il Capo', color: 'var(--char-pink)', colorClass: 'bg-char-pink', avatar: avatarUpappon },
-  { id: 'vip2', name: 'LA DIVA', emoji: '💎', role: 'La Star', color: 'var(--char-purple)', colorClass: 'bg-char-purple', avatar: avatarFashionblo },
-  { id: 'vip3', name: 'IL CRITICO', emoji: '🎭', role: 'Il Giudice', color: 'var(--char-red)', colorClass: 'bg-char-red', avatar: avatarGhigghion },
-  { id: 'vip4', name: 'LA VELENO', emoji: '🐍', role: 'La Perfida', color: 'var(--char-teal)', colorClass: 'bg-char-teal', avatar: avatarBkkin },
-  { id: 'vip5', name: 'IL FOLLE', emoji: '🤪', role: 'Lo Sregolato', color: 'var(--char-cyan)', colorClass: 'bg-char-cyan', avatar: avatarSquagghiat },
+export const defaultBothCharacters: Character[] = [
+  ...defaultFemaleCharacters,
+  ...defaultMaleCharacters,
 ];
 
 export const defaultGroupNames: Record<GroupType, string> = {
   female: 'Le Vipere 🐍',
   male: 'Bastardon 🔥',
-  vip: 'VIP Lounge 👑',
+  both: 'La Comitiva 🎉',
 };
