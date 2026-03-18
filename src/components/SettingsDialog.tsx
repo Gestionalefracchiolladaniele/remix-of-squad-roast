@@ -2,23 +2,16 @@ import React, { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Camera, ChevronDown, ChevronUp, Save, Trash2, History, RotateCcw, Image, X, Plus, MessageSquare, Clock, Smile, FileText } from 'lucide-react';
-import { GroupType, RoastLevel, ChatMode, Character, CharacterMessage } from '@/lib/characters';
+import { GroupType, ChatMode, Character, CharacterMessage } from '@/lib/characters';
 import { ChatSession, CharacterPreset } from '@/hooks/use-chat-storage';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface ConversationImportProps {
-  characters: Character[];
-  onCharacterUpdate: (id: string, updates: Partial<Character>) => void;
-  onImportUserMessages: (messages: { order: number; text: string; time?: string }[]) => void;
-}
 
 interface SettingsDialogProps {
   open: boolean;
@@ -29,12 +22,10 @@ interface SettingsDialogProps {
   onChatModeChange: (mode: ChatMode) => void;
   groupName: string;
   onGroupNameChange: (name: string) => void;
-  interactive: boolean;
-  onInteractiveChange: (v: boolean) => void;
-  roastLevel: RoastLevel;
-  onRoastLevelChange: (level: RoastLevel) => void;
   characters: Character[];
   onCharacterUpdate: (id: string, updates: Partial<Character>) => void;
+  onAddCharacter: () => void;
+  onRemoveCharacter: (id: string) => void;
   sessions: ChatSession[];
   presets: CharacterPreset[];
   onLoadSession: (sessionId: string) => void;
@@ -66,9 +57,7 @@ const parseConversationText = (text: string, characters: Character[]): {
   const userMessages: { order: number; text: string }[] = [];
   const unmatched: string[] = [];
   
-  // Parse each line: formats like "1. NAME: message", "1 NAME: message", "NAME: message"
   const lineRegex = /^(?:(\d+)[.\s]\s*)?([^:]+?):\s*(.+)$/;
-  
   let globalOrder = 1;
   
   for (const line of lines) {
@@ -80,21 +69,18 @@ const parseConversationText = (text: string, characters: Character[]): {
     const message = match[3].trim();
     const order = explicitOrder ?? globalOrder;
     
-    // Check if it's a user message (TU)
     if (rawName.toUpperCase() === 'TU') {
       userMessages.push({ order, text: message });
       globalOrder++;
       continue;
     }
     
-    // Find matching character (case-insensitive, partial match)
     const matchedChar = characters.find(c => {
       const charName = c.name.toLowerCase().trim();
       const inputName = rawName.toLowerCase().trim();
       return charName === inputName || 
              charName.includes(inputName) || 
              inputName.includes(charName) ||
-             // Also check without special chars
              charName.replace(/[^a-zà-ú\s]/gi, '').trim() === inputName.replace(/[^a-zà-ú\s]/gi, '').trim();
     });
     
@@ -116,8 +102,8 @@ const parseConversationText = (text: string, characters: Character[]): {
 
 const SettingsDialog: React.FC<SettingsDialogProps> = ({
   open, onOpenChange, groupType, onGroupTypeChange, chatMode, onChatModeChange,
-  groupName, onGroupNameChange, interactive, onInteractiveChange,
-  roastLevel, onRoastLevelChange, characters, onCharacterUpdate,
+  groupName, onGroupNameChange, characters, onCharacterUpdate,
+  onAddCharacter, onRemoveCharacter,
   sessions, presets, onLoadSession, onDeleteSession,
   onSavePreset, onLoadPreset, onDeletePreset,
   selectedSingleCharIndex, onSelectedSingleCharChange,
@@ -134,10 +120,8 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const charImageRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleAvatarChange = async (charId: string, file: File) => {
-    // Show preview immediately
     const blobUrl = URL.createObjectURL(file);
     onCharacterUpdate(charId, { avatar: blobUrl });
-    // Upload to storage
     try {
       const publicUrl = await uploadAvatarToStorage(charId, file);
       onCharacterUpdate(charId, { avatar: publicUrl });
@@ -180,7 +164,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
     
     const { charMessages, userMessages, unmatched } = parseConversationText(conversationText, characters);
     
-    // Assign messages to characters
     let assignedCount = 0;
     for (const [charId, data] of Object.entries(charMessages)) {
       const msgs: CharacterMessage[] = data.texts.map((text, i) => ({
@@ -192,7 +175,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
       assignedCount += msgs.length;
     }
     
-    // Handle user messages
     if (userMessages.length > 0 && onImportUserMessages) {
       onImportUserMessages(userMessages.map(m => ({ ...m, time: globalTime || undefined })));
     }
@@ -216,7 +198,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
           <DialogTitle className="text-lg">⚙️ Impostazioni</DialogTitle>
         </DialogHeader>
 
-        {/* Tabs */}
         <div className="flex border-b border-border px-4">
           {[
             { key: 'settings' as const, label: '⚙️ Opzioni' },
@@ -268,8 +249,8 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     <Label htmlFor="male" className="text-sm cursor-pointer">🔥 Maschi</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <RadioGroupItem value="vip" id="vip" />
-                    <Label htmlFor="vip" className="text-sm cursor-pointer">👑 VIP</Label>
+                    <RadioGroupItem value="both" id="both" />
+                    <Label htmlFor="both" className="text-sm cursor-pointer">👥 Entrambi</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -312,34 +293,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   />
                 </div>
               )}
-
-              {/* Interactive Mode */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-semibold text-foreground">Risposte Interattive</Label>
-                  <p className="text-xs text-muted-foreground">Rispondi ai messaggi nella chat</p>
-                </div>
-                <Switch checked={interactive} onCheckedChange={onInteractiveChange} />
-              </div>
-
-              {/* Roast Level */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-foreground">Livello di Cattiveria</Label>
-                <RadioGroup value={roastLevel} onValueChange={(v) => onRoastLevelChange(v as RoastLevel)} className="flex gap-3">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="soft" id="soft" />
-                    <Label htmlFor="soft" className="text-sm cursor-pointer">😏 Soft</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="medium" id="medium" />
-                    <Label htmlFor="medium" className="text-sm cursor-pointer">😈 Medio</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="savage" id="savage" />
-                    <Label htmlFor="savage" className="text-sm cursor-pointer">💀 Senza Pietà</Label>
-                  </div>
-                </RadioGroup>
-              </div>
 
               {/* Global Time + Import Conversation */}
               <div className="space-y-2">
@@ -419,7 +372,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     <Textarea
                       value={conversationText}
                       onChange={(e) => setConversationText(e.target.value)}
-                      placeholder={`Es:\nSere: Raga, sveglia!\nMARTY: AHAHAH!\nTU: Ma dai!\nBEA: Nooo!`}
+                      placeholder={`Es:\n1. ZAMP: Raga, sveglia!\n2. TU: Ma dai!\n3. BKKIN: Nooo!`}
                       className="bg-background border-border text-foreground text-sm min-h-[200px] resize-none font-mono"
                     />
                     <div className="flex gap-2">
@@ -445,53 +398,60 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 </div>
               )}
 
-              {/* Save Preset */}
+              {/* Characters */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold text-foreground">Personaggi</Label>
-                  {showPresetInput ? (
-                    <div className="flex items-center gap-1">
-                      <Input
-                        value={presetName}
-                        onChange={(e) => setPresetName(e.target.value)}
-                        placeholder="Nome preset..."
-                        className="bg-background border-border text-foreground h-7 text-xs w-28"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && presetName.trim()) {
+                  <Label className="text-sm font-semibold text-foreground">Personaggi ({characters.length})</Label>
+                  <div className="flex gap-1">
+                    {showPresetInput ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={presetName}
+                          onChange={(e) => setPresetName(e.target.value)}
+                          placeholder="Nome preset..."
+                          className="bg-background border-border text-foreground h-7 text-xs w-28"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && presetName.trim()) {
+                              onSavePreset(presetName.trim());
+                              setPresetName('');
+                              setShowPresetInput(false);
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-7 text-xs gap-1"
+                          disabled={!presetName.trim()}
+                          onClick={() => {
                             onSavePreset(presetName.trim());
                             setPresetName('');
                             setShowPresetInput(false);
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="h-7 text-xs gap-1"
-                        disabled={!presetName.trim()}
-                        onClick={() => {
-                          onSavePreset(presetName.trim());
-                          setPresetName('');
-                          setShowPresetInput(false);
-                        }}
-                      >
-                        <Save className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs px-1.5"
-                        onClick={() => { setShowPresetInput(false); setPresetName(''); }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => setShowPresetInput(true)} className="h-7 text-xs gap-1">
-                      <Save className="w-3 h-3" /> Salva Preset
-                    </Button>
-                  )}
+                          }}
+                        >
+                          <Save className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs px-1.5"
+                          onClick={() => { setShowPresetInput(false); setPresetName(''); }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => setShowPresetInput(true)} className="h-7 text-xs gap-1">
+                          <Save className="w-3 h-3" /> Preset
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={onAddCharacter} className="h-7 text-xs gap-1">
+                          <Plus className="w-3 h-3" /> Aggiungi
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {characters.map((char, idx) => (
@@ -499,10 +459,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       key={char.id}
                       char={char}
                       idx={idx}
-                      totalChars={characters.length}
                       expanded={expandedChar === char.id}
                       onToggle={() => setExpandedChar(expandedChar === char.id ? null : char.id)}
                       onUpdate={onCharacterUpdate}
+                      onRemove={() => onRemoveCharacter(char.id)}
+                      canRemove={characters.length > 1}
                       fileRefs={fileRefs}
                       charImageRefs={charImageRefs}
                       onAvatarChange={handleAvatarChange}
@@ -530,7 +491,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     >
                       <p className="text-sm font-medium text-foreground truncate">{s.group_name}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {new Date(s.updated_at).toLocaleDateString('it-IT')} • {s.messageCount} msg • {s.roast_level}
+                        {new Date(s.updated_at).toLocaleDateString('it-IT')} • {s.messageCount} msg
                       </p>
                     </button>
                     <button
@@ -548,7 +509,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
           {activeTab === 'presets' && (
             <div className="space-y-3 pr-2 pt-2">
               <p className="text-xs text-muted-foreground">
-                Preset personaggi salvati per "{groupType === 'female' ? 'Femmine' : groupType === 'male' ? 'Maschi' : 'VIP'}"
+                Preset personaggi salvati per "{groupType === 'female' ? 'Femmine' : groupType === 'male' ? 'Maschi' : 'Entrambi'}"
               </p>
               {filteredPresets.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nessun preset salvato</p>
@@ -600,10 +561,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 interface CharacterItemProps {
   char: Character;
   idx: number;
-  totalChars: number;
   expanded: boolean;
   onToggle: () => void;
   onUpdate: (id: string, updates: Partial<Character>) => void;
+  onRemove: () => void;
+  canRemove: boolean;
   fileRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
   charImageRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
   onAvatarChange: (charId: string, file: File) => void;
@@ -612,7 +574,7 @@ interface CharacterItemProps {
 }
 
 const CharacterItem: React.FC<CharacterItemProps> = ({
-  char, idx, totalChars, expanded, onToggle, onUpdate,
+  char, idx, expanded, onToggle, onUpdate, onRemove, canRemove,
   fileRefs, charImageRefs, onAvatarChange, onCharImageChange, onMessageImageUpload,
 }) => {
   return (
@@ -709,7 +671,6 @@ const CharacterItem: React.FC<CharacterItemProps> = ({
             <Input
               type="number"
               min={1}
-              max={totalChars}
               value={char.order ?? idx + 1}
               onChange={(e) => onUpdate(char.id, { order: parseInt(e.target.value) || idx + 1 })}
               className="bg-background border-border text-foreground h-8 text-sm w-20"
@@ -777,6 +738,21 @@ const CharacterItem: React.FC<CharacterItemProps> = ({
                       />
                       <span className="text-xs text-muted-foreground font-medium">Orario</span>
                     </div>
+                    {/* Order */}
+                    <div className="flex items-center gap-2 bg-secondary/50 rounded-md p-1.5">
+                      <span className="text-xs text-muted-foreground font-medium">Ordine:</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={cm.order}
+                        onChange={(e) => {
+                          const updated = [...char.customMessages!];
+                          updated[mi] = { ...updated[mi], order: parseInt(e.target.value) || mi + 1 };
+                          onUpdate(char.id, { customMessages: updated });
+                        }}
+                        className="bg-background border-border text-foreground h-7 text-sm w-20"
+                      />
+                    </div>
                     {/* Image for this message */}
                     {cm.image ? (
                       <div className="relative inline-block">
@@ -816,14 +792,12 @@ const CharacterItem: React.FC<CharacterItemProps> = ({
               </div>
             ) : (
               <>
-                {/* Legacy single message fallback */}
                 <Textarea
                   value={char.customMessage || ''}
                   onChange={(e) => onUpdate(char.id, { customMessage: e.target.value || undefined })}
                   placeholder="Scrivi cosa deve dire (1 messaggio) o usa + per più messaggi..."
                   className="bg-background border-border text-foreground text-sm min-h-[50px] resize-none"
                 />
-                {/* Legacy time */}
                 <div className="flex items-center gap-2 mt-1">
                   <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                   <Input
@@ -838,7 +812,6 @@ const CharacterItem: React.FC<CharacterItemProps> = ({
                   />
                   <span className="text-xs text-muted-foreground">Orario</span>
                 </div>
-                {/* Legacy custom image */}
                 {char.customImage ? (
                   <div className="relative inline-block">
                     <img src={char.customImage} alt="Custom" className="w-16 h-16 rounded-lg object-cover border border-border" />
@@ -874,6 +847,18 @@ const CharacterItem: React.FC<CharacterItemProps> = ({
               Usa "+" per aggiungere più messaggi in sequenza
             </p>
           </div>
+
+          {/* Remove character */}
+          {canRemove && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full h-8 text-xs gap-1"
+              onClick={onRemove}
+            >
+              <Trash2 className="w-3 h-3" /> Rimuovi Personaggio
+            </Button>
+          )}
         </div>
       )}
     </div>
