@@ -1,6 +1,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Character } from '@/lib/characters';
+import logoButterfly from '@/assets/logo-butterfly.png';
 
 interface ScreenshotModalProps {
   message: {
@@ -22,7 +23,6 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
       onDoubleClick={onClose}
     >
-      {/* Full-width chat strip — no rounding, just the wa-pattern background */}
       <div className="w-full wa-pattern py-3">
         <div className={`flex gap-2 px-3 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
           {!message.isUser && character && (
@@ -57,9 +57,10 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
 
             <p className="text-[15px] text-foreground leading-relaxed whitespace-pre-wrap">{message.text}</p>
 
-            <p className="text-[11px] text-muted-foreground text-right mt-0.5 -mb-0.5">
-              {timeStr}
-              {message.isUser && <span className="ml-1 text-primary">✓✓</span>}
+            <p className="text-[11px] text-muted-foreground text-right mt-0.5 -mb-0.5 flex items-center justify-end gap-1">
+              <span>{timeStr}</span>
+              <img src={logoButterfly} alt="" className="w-[11px] h-[11px] object-contain inline-block" />
+              {message.isUser && <span className="text-primary">✓✓</span>}
             </p>
           </div>
         </div>

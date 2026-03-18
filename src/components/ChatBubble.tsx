@@ -1,6 +1,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Character } from '@/lib/characters';
+import logoButterfly from '@/assets/logo-butterfly.png';
 
 interface ChatBubbleProps {
   text: string;
@@ -67,10 +68,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         {/* Text */}
         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{text}</p>
 
-        {/* Time */}
-        <p className="text-[10px] text-muted-foreground text-right mt-0.5 -mb-0.5">
-          {timeStr}
-          {isUser && <span className="ml-1 text-primary">✓✓</span>}
+        {/* Time + Logo */}
+        <p className="text-[10px] text-muted-foreground text-right mt-0.5 -mb-0.5 flex items-center justify-end gap-1">
+          <span>{timeStr}</span>
+          <img src={logoButterfly} alt="" className="w-[10px] h-[10px] object-contain inline-block" />
+          {isUser && <span className="text-primary">✓✓</span>}
         </p>
       </div>
     </div>
