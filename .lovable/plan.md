@@ -1,66 +1,59 @@
-## 🐍 WhatsApp Roast Chat - "Squad Roast Engine"
+## Piano di Implementazione
 
-### 1. UI Chat stile WhatsApp Dark
+### 1. Fix errori build (priorità immediata)
 
-- Sfondo scuro con pattern icone tipico di WhatsApp
-- Header con nome gruppo personalizzabile, foto gruppo e info partecipanti
-- Bolle di chat con colori diversi per ogni personaggio
-- Timestamp su ogni messaggio
-- Animazioni di ingresso per ogni bolla (slide-in + fade)
+- **Index.tsx**: Rimuovere import `RoastLevel`, `defaultVipCharacters`. Rinominare `vipChars`→`bothChars`, rimuovere ref a `'vip'` type. Rimuovere stato `roastLevel`.
+- **SettingsDialog.tsx**: Rimuovere import e prop `RoastLevel`, `roastLevel`, `onRoastLevelChange`.
 
-### 2. I Personaggi (5+1)
+### 2. Rimuovere funzionalità non desiderate
 
-**Gruppo Femminile ("Le Vipere 🐍"):**
+- **JSON Export**: Rimuovere `handleExport` da Index.tsx, rimuovere prop `onExport` da ChatInput, rimuovere bottone Download.
+- **Livello di Cattiveria**: Rimuovere radio group "Livello di Cattiveria" da SettingsDialog e relativo stato/prop.
+- **Risposte Interattive**: Rimuovere switch "Risposte Interattive" da SettingsDialog e relativo stato/prop.
+  &nbsp;
 
-- **LA ZAMP** 💅 (Queen del Cringe) - colore rosa/magenta
-- **LA FASHION BLO'** 👗 (Fashion Police) - colore viola
-- **BKKIN** 🔪 (La Cinica) - colore rosso
-- **GMMON**  🍷 (La Drammatica) - colore arancione  
-- **CULAROTT** 💀 (La Savage) - colore teal
+### 3. Sostituire "VIP" con "Entrambi"
 
-**Gruppo Maschile ("Bastardon 🔥"):**
+- SettingsDialog: Cambiare label `👑 VIP` → `👥 Entrambi` nel radio group.
+- Presets tab: Cambiare testo `'VIP'` → `'Entrambi'`.
+- characters.ts è già aggiornato con `both` type.
 
-- **U'PAPPON** 🫄 () - colore blu
-- **CRNUT** 🤘 () - colore verde
-- **GHIGGHION** 🤡 (I) - colore giallo
-- **SQUAGGHIAT** 🧊 (- colore ciano
-- **RKKNID** 💁‍♀️ ) - colore arancione
+### 4. Modalità solo manuale
 
-**+1: TU** (l'utente che carica la foto) - bolle a destra, colore verde WhatsApp
+- Rimuovere la logica AI da `startRoastSequence`: eliminare la chiamata a `supabase.functions.invoke('generate-roast')`. I messaggi senza testo custom vengono saltati o mostrati con placeholder.
+- Semplificare: la sequenza mostra solo messaggi con testo definito manualmente.
 
-Ogni personaggio ha una foto profilo realistica (immagini stock di ragazzi/e ~25 anni).
+### 5. Chat singola = chat gruppo
 
-### 3. ⚙️ Rotella Impostazioni
+- Unificare la logica: in modalità singola, usare lo stesso flusso di `startRoastSequence` con un solo personaggio. Rimuovere la distinzione speciale per `chatMode === 'single'`.
 
-- Selezione gruppo: Maschi / Femmine
-- Nome del gruppo personalizzabile
-- Toggle "Risposte interattive" (ON = puoi rispondere nella chat, OFF = tutto automatico)
-- Livello di cattiveria: Soft / Medio / Senza Pietà
+### 6. Nessun limite personaggi nei gruppi
 
-### 4. Flusso dell'App
+- Aggiungere bottone "Aggiungi Personaggio" nella sezione Personaggi di SettingsDialog.
+- Aggiungere bottone "Rimuovi" per ogni personaggio (con conferma).
+- Nuovo personaggio creato con ID univoco, nome/emoji/ruolo di default editabili.
+- Rimuovere `max` constraint sull'input ordine (`max={totalChars}`).
 
-1. L'utente apre l'app → vede la chat vuota con header del gruppo
-2. Carica la foto della "crush" tramite bottone
-3. La foto appare nella chat come messaggio inviato da te
-4. Animazione "typing..." dei personaggi uno dopo l'altro
-5. I messaggi di roast appaiono uno alla volta con suono di notifica e animazione
-6. Se modalità interattiva ON → l'utente può rispondere e i personaggi reagiscono
+### 7. Export automatico screenshot di tutti i messaggi
 
-### 5. Integrazione AI (integra la migliore ai per uso di questa app)
+Dopo che la conversazione è generata, aggiungere un bottone **"📸 Scarica Tutti gli Screenshot"** che:
 
-- Edge function su Supabase per chiamare OpenAI con il prompt "Squad Roast Engine"
-- La foto viene analizzata tramite GPT Vision
-- I messaggi vengono generati in sequenza con personalità distinte
-- Richiederà: connessione Supabase/Cloud + chiave API OpenAI
+- Usa `html-to-image` (libreria) per renderizzare ogni messaggio in modalità screenshot (stessa UI del ScreenshotModal) come immagine PNG.
+- Crea un componente nascosto che renderizza ogni messaggio uno alla volta nello stile screenshot (sfondo nero + striscia wa-pattern).
+- Converte ogni render in PNG via `toPng()`.
+- Opzione 1: Scarica tutte le immagini in un file ZIP (usando `jszip`). 
+- Opzione 2: Scarica una per una in sequenza rapida.
+- Il bottone apparirà nel ChatInput area quando ci sono messaggi e non si sta generando. (Implementa opzione 2 che è molto importante per me)
+- gli screen di ogni messaggio deve essere nella modalità del doppio click
 
-### 6. Animazioni & Effetti
+### 8. Dettagli tecnici
 
-- Typing indicator animato ("Sara sta scrivendo...")
-- Bolle che appaiono con effetto slide-up + bounce
-- Suono notifica WhatsApp per ogni messaggio
-- Scroll automatico verso il basso
-- Effetto "reply" con barra verde laterale per le risposte
+**Dipendenze da aggiungere**: `html-to-image`, `jszip` (per download ZIP).
 
-### 7. Disclaimer legale
+**File modificati**:
 
-- Banner in basso: "Contenuto satirico generato da AI • AI Roast Mode: ON"
+- `src/lib/characters.ts` — già OK (both type)
+- `src/pages/Index.tsx` — fix imports, rimuovere AI/export/roastLevel/interactive, aggiungere add/remove chars, aggiungere export screenshots
+- `src/components/SettingsDialog.tsx` — rimuovere roastLevel/interactive props, VIP→Entrambi, aggiungere add/remove personaggi
+- `src/components/ChatInput.tsx` — rimuovere export button, aggiungere bottone screenshot export
+- Nuovo: `src/components/ScreenshotExporter.tsx` — componente che renderizza tutti i messaggi come screenshot e li scarica come ZIP
