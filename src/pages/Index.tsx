@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ChatHeader from '@/components/ChatHeader';
 import ChatBubble from '@/components/ChatBubble';
 import ScreenshotModal from '@/components/ScreenshotModal';
+import ScreenshotExporter from '@/components/ScreenshotExporter';
 import TypingIndicator from '@/components/TypingIndicator';
 import ChatInput from '@/components/ChatInput';
 import SettingsDialog from '@/components/SettingsDialog';
-import { supabase } from '@/integrations/supabase/client';
 import {
-  GroupType, RoastLevel, ChatMode, Character, ChatMessage,
-  defaultFemaleCharacters, defaultMaleCharacters, defaultVipCharacters, defaultGroupNames,
+  GroupType, ChatMode, Character, ChatMessage,
+  defaultFemaleCharacters, defaultMaleCharacters, defaultBothCharacters, defaultGroupNames,
 } from '@/lib/characters';
 import { useChatStorage, CharacterPreset } from '@/hooks/use-chat-storage';
 import { toast } from 'sonner';
@@ -17,8 +17,6 @@ const Index = () => {
   const [groupType, setGroupType] = useState<GroupType>('female');
   const [chatMode, setChatMode] = useState<ChatMode>('group');
   const [groupName, setGroupName] = useState(defaultGroupNames.female);
-  const [interactive, setInteractive] = useState(true);
-  const [roastLevel, setRoastLevel] = useState<RoastLevel>('savage');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typingChar, setTypingChar] = useState<Character | null>(null);
@@ -30,12 +28,13 @@ const Index = () => {
   const [maleChars, setMaleChars] = useState<Character[]>(() =>
     defaultMaleCharacters.map((c, i) => ({ ...c, order: i + 1 }))
   );
-  const [vipChars, setVipChars] = useState<Character[]>(() =>
-    defaultVipCharacters.map((c, i) => ({ ...c, order: i + 1 }))
+  const [bothChars, setBothChars] = useState<Character[]>(() =>
+    defaultBothCharacters.map((c, i) => ({ ...c, order: i + 1 }))
   );
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [importedUserMessages, setImportedUserMessages] = useState<{ order: number; text: string; time?: string }[]>([]);
   const [screenshotMsg, setScreenshotMsg] = useState<ChatMessage | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -44,8 +43,8 @@ const Index = () => {
     savePreset, deletePreset,
   } = useChatStorage();
 
-  const allCharacters = groupType === 'female' ? femaleChars : groupType === 'male' ? maleChars : vipChars;
-  const setCharacters = groupType === 'female' ? setFemaleChars : groupType === 'male' ? setMaleChars : setVipChars;
+  const allCharacters = groupType === 'female' ? femaleChars : groupType === 'male' ? maleChars : bothChars;
+  const setCharacters = groupType === 'female' ? setFemaleChars : groupType === 'male' ? setMaleChars : setBothChars;
 
   // In single mode, only use the selected character
   const characters = chatMode === 'single' ? [allCharacters[selectedSingleCharIndex] || allCharacters[0]] : allCharacters;
@@ -64,7 +63,7 @@ const Index = () => {
     const types: { type: GroupType; setChars: typeof setFemaleChars; defaults: Character[] }[] = [
       { type: 'female', setChars: setFemaleChars, defaults: defaultFemaleCharacters },
       { type: 'male', setChars: setMaleChars, defaults: defaultMaleCharacters },
-      { type: 'vip', setChars: setVipChars, defaults: defaultVipCharacters },
+      { type: 'both', setChars: setBothChars, defaults: defaultBothCharacters },
     ];
     for (const { type, setChars, defaults } of types) {
       const preset = presets.find(p => p.group_type === type);
@@ -86,12 +85,12 @@ const Index = () => {
   useEffect(() => {
     if (messages.length > 0) {
       const timeout = setTimeout(() => {
-        saveSession(groupType, groupName, roastLevel, messages, currentSessionId || undefined)
+        saveSession(groupType, groupName, 'manual', messages, currentSessionId || undefined)
           .then(id => { if (id && !currentSessionId) setCurrentSessionId(id); });
       }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [messages, groupType, groupName, roastLevel, currentSessionId, saveSession]);
+  }, [messages, groupType, groupName, currentSessionId, saveSession]);
 
   const handleGroupTypeChange = useCallback((type: GroupType) => {
     setGroupType(type);
@@ -102,11 +101,10 @@ const Index = () => {
     setCurrentSessionId(null);
     setSelectedSingleCharIndex(0);
 
-    // Auto-load first saved preset for this group type
     const matchingPreset = presets.find(p => p.group_type === type);
     if (matchingPreset) {
-      const defaults = type === 'female' ? defaultFemaleCharacters : type === 'male' ? defaultMaleCharacters : defaultVipCharacters;
-      const setChars = type === 'female' ? setFemaleChars : type === 'male' ? setMaleChars : setVipChars;
+      const defaults = type === 'female' ? defaultFemaleCharacters : type === 'male' ? defaultMaleCharacters : defaultBothCharacters;
+      const setChars = type === 'female' ? setFemaleChars : type === 'male' ? setMaleChars : setBothChars;
       const merged = matchingPreset.characters.map((pc, i) => {
         const def = defaults.find(d => d.id === pc.id) || defaults[i];
         return {
@@ -130,6 +128,25 @@ const Index = () => {
 
   const handleCharacterUpdate = (id: string, updates: Partial<Character>) => {
     setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  const handleAddCharacter = () => {
+    const newId = `custom-${Date.now()}`;
+    const newChar: Character = {
+      id: newId,
+      name: 'NUOVO',
+      emoji: '🆕',
+      role: 'Nuovo Personaggio',
+      color: 'var(--char-teal)',
+      colorClass: 'bg-char-teal',
+      avatar: '',
+      order: allCharacters.length + 1,
+    };
+    setCharacters(prev => [...prev, newChar]);
+  };
+
+  const handleRemoveCharacter = (id: string) => {
+    setCharacters(prev => prev.filter(c => c.id !== id));
   };
 
   const getCharById = (id: string) => allCharacters.find(c => c.id === id);
@@ -165,48 +182,41 @@ const Index = () => {
     });
   }, []);
 
+  // Manual-only roast sequence: only shows messages with custom text
   const startRoastSequence = useCallback(async (imageBase64?: string, textDescription?: string) => {
     setIsRoasting(true);
 
     try {
       const orderedChars = sortCharactersByOrder(characters);
 
-      // Build message slots: each character can have multiple messages
       const messageSlots: { charId: string; order: number; text?: string; image?: string; time?: string; isUser?: boolean }[] = [];
       
       for (const c of orderedChars) {
         if (c.customMessages && c.customMessages.length > 0) {
-          // Use custom messages array - use each message's own order for correct sequencing
           const sorted = [...c.customMessages].sort((a, b) => a.order - b.order);
           sorted.forEach((cm) => {
-            messageSlots.push({
-              charId: c.id,
-              order: cm.order,
-              text: cm.text || undefined,
-              image: cm.image || undefined,
-              time: cm.time || undefined,
-            });
+            if (cm.text) {
+              messageSlots.push({
+                charId: c.id,
+                order: cm.order,
+                text: cm.text,
+                image: cm.image || undefined,
+                time: cm.time || undefined,
+              });
+            }
           });
         } else if (c.customMessage) {
-          // Legacy single message
           messageSlots.push({
             charId: c.id,
             order: (c.order ?? 99) * 100,
             text: c.customMessage,
             image: c.customImage || undefined,
           });
-        } else {
-          // AI-generated single message
-          messageSlots.push({
-            charId: c.id,
-            order: (c.order ?? 99) * 100,
-            text: undefined,
-            image: c.customImage || undefined,
-          });
         }
+        // Skip characters without custom text (no AI fallback)
       }
 
-      // Add imported user messages ("TU") - use their own order directly
+      // Add imported user messages
       for (const um of importedUserMessages) {
         messageSlots.push({
           charId: 'user',
@@ -219,54 +229,15 @@ const Index = () => {
 
       messageSlots.sort((a, b) => a.order - b.order);
 
-      // Separate: slots with custom text vs slots needing AI
-      const needsAI = messageSlots.filter(s => !s.text);
-      
-      let aiRoasts: Record<string, string[]> = {};
-
-      if (needsAI.length > 0) {
-        // Count how many AI messages each character needs
-        const aiCounts: Record<string, number> = {};
-        needsAI.forEach(s => {
-          aiCounts[s.charId] = (aiCounts[s.charId] || 0) + 1;
-        });
-
-        const { data, error } = await supabase.functions.invoke('generate-roast', {
-          body: {
-            imageBase64,
-            textDescription,
-            characters: orderedChars.map((c, i) => ({
-              id: c.id,
-              name: c.name,
-              emoji: c.emoji,
-              role: c.role,
-              customMessage: c.customMessage,
-              order: i + 1,
-              messageCount: aiCounts[c.id] || 0,
-            })),
-            roastLevel,
-            groupType,
-            chatMode,
-          },
-        });
-
-        if (error) throw error;
-
-        const roasts = data?.roasts || [];
-        // Group AI responses by charId
-        roasts.forEach((r: any) => {
-          if (!aiRoasts[r.charId]) aiRoasts[r.charId] = [];
-          aiRoasts[r.charId].push(r.text);
-        });
+      if (messageSlots.length === 0) {
+        toast.error('Nessun messaggio configurato! Vai nelle impostazioni e scrivi i messaggi.');
+        setIsRoasting(false);
+        return;
       }
-
-      // Track AI message index per character
-      const aiIndexes: Record<string, number> = {};
 
       for (let i = 0; i < messageSlots.length; i++) {
         const slot = messageSlots[i];
         
-        // Handle user messages ("TU")
         if (slot.isUser) {
           await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
           let msgTimestamp = new Date();
@@ -292,14 +263,6 @@ const Index = () => {
         const char = getCharById(slot.charId);
         if (!char) continue;
 
-        let msgText = slot.text;
-        if (!msgText) {
-          if (!aiIndexes[slot.charId]) aiIndexes[slot.charId] = 0;
-          const idx = aiIndexes[slot.charId];
-          msgText = aiRoasts[slot.charId]?.[idx] || `${char.emoji} ...`;
-          aiIndexes[slot.charId] = idx + 1;
-        }
-
         setTypingChar(char);
         await new Promise(r => setTimeout(r, 1800 + Math.random() * 800));
         setTypingChar(null);
@@ -316,7 +279,7 @@ const Index = () => {
           {
             id: `roast-${Date.now()}-${i}`,
             characterId: slot.charId,
-            text: msgText!,
+            text: slot.text!,
             timestamp: msgTimestamp,
             isUser: false,
             imageUrl: slot.image || undefined,
@@ -327,30 +290,27 @@ const Index = () => {
       }
     } catch (err: any) {
       console.error('Roast generation error:', err);
-      toast.error('Errore nella generazione dei roast. Riprova!');
+      toast.error('Errore nella generazione. Riprova!');
     }
 
     setIsRoasting(false);
-  }, [characters, roastLevel, groupType, chatMode, sortCharactersByOrder, importedUserMessages]);
+  }, [characters, groupType, chatMode, sortCharactersByOrder, importedUserMessages]);
 
   const handleUploadPhoto = useCallback(async (file: File, text?: string) => {
     const url = URL.createObjectURL(file);
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       characterId: 'user',
-      text: text || 'Raga guardate questo/a... che ne pensate? 👀',
+      text: text || '👀',
       timestamp: new Date(),
       isUser: true,
       imageUrl: url,
     };
     setMessages(prev => [...prev, userMsg]);
-
-    const base64 = await fileToBase64(file);
-    setTimeout(() => startRoastSequence(base64, text), 800);
+    setTimeout(() => startRoastSequence(undefined, text), 800);
   }, [startRoastSequence]);
 
   const handleSendMessage = useCallback((text: string) => {
-    if (!interactive) return;
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       characterId: 'user',
@@ -363,7 +323,7 @@ const Index = () => {
     if (!isRoasting) {
       setTimeout(() => startRoastSequence(undefined, text), 500);
     }
-  }, [interactive, isRoasting, startRoastSequence]);
+  }, [isRoasting, startRoastSequence]);
 
   const handleLoadSession = useCallback(async (sessionId: string) => {
     const session = sessions.find(s => s.id === sessionId);
@@ -374,7 +334,6 @@ const Index = () => {
     setCurrentSessionId(sessionId);
     setGroupName(session.group_name);
     setGroupType(session.group_type as GroupType);
-    setRoastLevel(session.roast_level as RoastLevel);
     toast.success('Chat caricata!');
   }, [sessions, loadSessionMessages]);
 
@@ -397,7 +356,7 @@ const Index = () => {
   }, []);
 
   const handleLoadPreset = useCallback((preset: CharacterPreset) => {
-    const defaults = groupType === 'female' ? defaultFemaleCharacters : groupType === 'male' ? defaultMaleCharacters : defaultVipCharacters;
+    const defaults = groupType === 'female' ? defaultFemaleCharacters : groupType === 'male' ? defaultMaleCharacters : defaultBothCharacters;
     const merged = preset.characters.map((pc, i) => {
       const def = defaults.find(d => d.id === pc.id) || defaults[i];
       return {
@@ -416,36 +375,10 @@ const Index = () => {
     toast.success('Preset eliminato');
   }, [deletePreset]);
 
-  const handleExport = useCallback(() => {
+  const handleExportScreenshots = useCallback(() => {
     if (messages.length === 0) return;
-    const exportData = {
-      groupName,
-      groupType,
-      messages: messages.map(msg => {
-        const char = getCharById(msg.characterId);
-        const avatarFile = char?.avatar ? char.avatar.split('/').pop() || '' : '';
-        return {
-          id: msg.id,
-          characterId: msg.isUser ? 'user' : msg.characterId,
-          characterName: msg.isUser ? 'Tu' : (char?.name || msg.characterId),
-          emoji: msg.isUser ? '👤' : (char?.emoji || ''),
-          color: msg.isUser ? '' : (char?.color || ''),
-          avatar: msg.isUser ? '' : avatarFile,
-          text: msg.text,
-          timestamp: msg.timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-          isUser: msg.isUser,
-        };
-      }),
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'export.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Export scaricato!');
-  }, [messages, groupName, groupType, allCharacters]);
+    setIsExporting(true);
+  }, [messages]);
 
   const headerChars = chatMode === 'single' ? characters : allCharacters;
 
@@ -459,15 +392,17 @@ const Index = () => {
       />
 
       <div className="flex-1 overflow-y-auto chat-scroll wa-pattern py-3">
-        {messages.length === 0 && chatMode === 'group' && (
+        {messages.length === 0 && (
           <div className="flex items-center justify-center h-full px-8">
             <div className="text-center space-y-3">
               <div className="text-5xl">
-                {groupType === 'female' ? '🐍' : groupType === 'male' ? '🔥' : '👑'}
+                {groupType === 'female' ? '🐍' : groupType === 'male' ? '🔥' : '🎉'}
               </div>
-              <h2 className="text-lg font-bold text-foreground">{groupName}</h2>
+              <h2 className="text-lg font-bold text-foreground">
+                {chatMode === 'single' ? characters[0]?.name || '' : groupName}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Carica una foto o scrivi un messaggio per iniziare il roast!
+                Configura i messaggi nelle impostazioni e avvia la conversazione!
               </p>
               <div className="flex flex-wrap justify-center gap-2 mt-4">
                 {characters.map(c => (
@@ -476,19 +411,12 @@ const Index = () => {
                     className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs"
                     style={{ backgroundColor: `hsl(${c.color} / 0.15)`, color: `hsl(${c.color})` }}
                   >
-                    <img src={c.avatar} alt={c.name} className="w-5 h-5 rounded-full object-cover" />
+                    {c.avatar && <img src={c.avatar} alt={c.name} className="w-5 h-5 rounded-full object-cover" />}
                     {c.name} {c.emoji}
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        )}
-        {messages.length === 0 && chatMode === 'single' && (
-          <div className="flex items-center justify-center h-full px-8">
-            <p className="text-sm text-muted-foreground">
-              Scrivi un messaggio per iniziare...
-            </p>
           </div>
         )}
 
@@ -510,16 +438,11 @@ const Index = () => {
         <div ref={chatEndRef} />
       </div>
 
-      <div className="text-center py-1 text-[10px] text-muted-foreground bg-popover/80 border-t border-border">
-        🤖 Contenuto satirico generato da AI • AI Roast Mode: ON
-      </div>
-
       <ChatInput
         onSendMessage={handleSendMessage}
         onUploadPhoto={handleUploadPhoto}
-        onExport={handleExport}
+        onExportScreenshots={handleExportScreenshots}
         disabled={isRoasting}
-        interactive={interactive}
         hasMessages={messages.length > 0}
       />
 
@@ -532,12 +455,10 @@ const Index = () => {
         onChatModeChange={handleChatModeChange}
         groupName={groupName}
         onGroupNameChange={setGroupName}
-        interactive={interactive}
-        onInteractiveChange={setInteractive}
-        roastLevel={roastLevel}
-        onRoastLevelChange={setRoastLevel}
         characters={allCharacters}
         onCharacterUpdate={handleCharacterUpdate}
+        onAddCharacter={handleAddCharacter}
+        onRemoveCharacter={handleRemoveCharacter}
         sessions={sessions}
         presets={presets}
         onLoadSession={handleLoadSession}
@@ -555,6 +476,14 @@ const Index = () => {
           message={screenshotMsg}
           character={getCharById(screenshotMsg.characterId)}
           onClose={() => setScreenshotMsg(null)}
+        />
+      )}
+
+      {isExporting && (
+        <ScreenshotExporter
+          messages={messages}
+          getCharById={getCharById}
+          onComplete={() => setIsExporting(false)}
         />
       )}
     </div>

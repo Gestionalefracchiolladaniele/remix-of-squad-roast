@@ -1,16 +1,15 @@
 import React, { useRef, useState } from 'react';
-import { Send, Image, Smile, X, Download } from 'lucide-react';
+import { Send, Image, Smile, X, Camera } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (text: string, file?: File) => void;
   onUploadPhoto: (file: File, text?: string) => void;
-  onExport?: () => void;
+  onExportScreenshots?: () => void;
   disabled?: boolean;
-  interactive: boolean;
   hasMessages?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onExport, disabled, interactive, hasMessages }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onExportScreenshots, disabled, hasMessages }) => {
   const [text, setText] = useState('');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -75,41 +74,33 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onE
           onChange={handleFileChange}
         />
 
-        {interactive || pendingFile ? (
-          <>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={pendingFile ? "Aggiungi un messaggio..." : "Scrivi un messaggio..."}
-                disabled={disabled}
-                className="w-full bg-secondary text-foreground text-sm rounded-full px-4 py-2 pr-10 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-              />
-              <Smile className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            </div>
-            <button
-              onClick={handleSend}
-              disabled={disabled || (!text.trim() && !pendingFile)}
-              className="p-2 bg-primary rounded-full text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-            {hasMessages && onExport && (
-              <button
-                onClick={onExport}
-                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                title="Esporta per Social"
-              >
-                <Download className="w-5 h-5" />
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="flex-1 text-center text-xs text-muted-foreground py-2">
-            📸 Carica una foto per iniziare il roast
-          </div>
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder={pendingFile ? "Aggiungi un messaggio..." : "Scrivi un messaggio..."}
+            disabled={disabled}
+            className="w-full bg-secondary text-foreground text-sm rounded-full px-4 py-2 pr-10 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+          />
+          <Smile className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        </div>
+        <button
+          onClick={handleSend}
+          disabled={disabled || (!text.trim() && !pendingFile)}
+          className="p-2 bg-primary rounded-full text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          <Send className="w-4 h-4" />
+        </button>
+        {hasMessages && onExportScreenshots && (
+          <button
+            onClick={onExportScreenshots}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="Scarica screenshot di tutti i messaggi"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
         )}
       </div>
     </div>
