@@ -59,7 +59,7 @@ const ScreenshotModal: React.FC<ScreenshotModalProps> = ({ message, character, o
 
             <p className="text-[11px] text-muted-foreground text-right mt-0.5 -mb-0.5 flex items-center justify-end gap-1">
               <span>{timeStr}</span>
-              <img src={logoButterfly} alt="" className="w-[11px] h-[11px] object-contain inline-block" />
+              <img src={logoButterfly} alt="" className="w-[18px] h-[18px] object-contain inline-block" />
               {message.isUser && <span className="text-primary">✓✓</span>}
             </p>
           </div>
