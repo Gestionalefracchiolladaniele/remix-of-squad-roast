@@ -71,7 +71,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         {/* Time + Logo */}
         <p className="text-[10px] text-muted-foreground text-right mt-0.5 -mb-0.5 flex items-center justify-end gap-1">
           <span>{timeStr}</span>
-          <img src={logoButterfly} alt="" className="w-[10px] h-[10px] object-contain inline-block" />
+          <img src={logoButterfly} alt="" className="w-4 h-4 object-contain inline-block" />
           {isUser && <span className="text-primary">✓✓</span>}
         </p>
       </div>
