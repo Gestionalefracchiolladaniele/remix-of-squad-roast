@@ -376,9 +376,9 @@ const Index = () => {
   }, [deletePreset]);
 
   const handleExportScreenshots = useCallback(() => {
-    if (messages.length === 0) return;
+    if (messages.length === 0 || isExporting) return;
     setIsExporting(true);
-  }, [messages]);
+  }, [isExporting, messages.length]);
 
   const headerChars = chatMode === 'single' ? characters : allCharacters;
 
@@ -442,7 +442,7 @@ const Index = () => {
         onSendMessage={handleSendMessage}
         onUploadPhoto={handleUploadPhoto}
         onExportScreenshots={handleExportScreenshots}
-        disabled={isRoasting}
+        disabled={isRoasting || isExporting}
         hasMessages={messages.length > 0}
       />
 

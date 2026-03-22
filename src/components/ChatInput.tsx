@@ -96,7 +96,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, onUploadPhoto, onE
         {hasMessages && onExportScreenshots && (
           <button
             onClick={onExportScreenshots}
-            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            disabled={disabled}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:hover:text-muted-foreground"
             title="Scarica screenshot di tutti i messaggi"
           >
             <Camera className="w-5 h-5" />
