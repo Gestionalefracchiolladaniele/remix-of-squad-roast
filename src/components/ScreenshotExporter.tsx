@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { toPng } from 'html-to-image';
+import { toBlob } from 'html-to-image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Character, ChatMessage } from '@/lib/characters';
 import logoButterfly from '@/assets/logo-butterfly.png';
@@ -13,73 +13,107 @@ interface ScreenshotExporterProps {
 
 const ScreenshotExporter: React.FC<ScreenshotExporterProps> = ({ messages, getCharById, onComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasStartedRef = useRef(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const [status, setStatus] = useState<'waiting' | 'rendering' | 'capturing' | 'done'>('waiting');
+  const [status, setStatus] = useState<'waiting' | 'rendering' | 'capturing' | 'downloading' | 'done'>('waiting');
 
-  const downloadDataUrl = useCallback((dataUrl: string, filename: string) => {
+  const wait = useCallback((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)), []);
+
+  const downloadBlob = useCallback(async (blob: Blob, filename: string) => {
+    const objectUrl = URL.createObjectURL(blob);
+
     return new Promise<void>((resolve) => {
       const link = document.createElement('a');
       link.download = filename;
-      link.href = dataUrl;
+      link.href = objectUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(resolve, 600);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+        resolve();
+      }, 1200);
     });
   }, []);
 
   useEffect(() => {
-    if (currentIndex === -1) {
-      toast.info(`Esportazione di ${messages.length} screenshot...`);
-      setCurrentIndex(0);
+    if (hasStartedRef.current) {
       return;
     }
 
-    if (currentIndex >= messages.length) {
-      toast.success(`${messages.length} screenshot scaricati!`);
+    hasStartedRef.current = true;
+
+    if (messages.length === 0) {
       onComplete();
       return;
     }
 
-    setStatus('rendering');
+    let cancelled = false;
 
-    // Wait for DOM to render the current message
-    const renderTimeout = setTimeout(async () => {
-      setStatus('capturing');
-      const el = containerRef.current;
-      if (!el) {
-        setCurrentIndex(prev => prev + 1);
-        return;
-      }
+    const exportSequentially = async () => {
+      toast.info(`Esportazione di ${messages.length} screenshot...`);
 
       try {
-        // Multiple attempts for reliability
-        let dataUrl: string | null = null;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            dataUrl = await toPng(el, {
-              backgroundColor: '#000000',
-              pixelRatio: 2,
-              cacheBust: true,
-            });
-            break;
-          } catch {
-            await new Promise(r => setTimeout(r, 300));
+        for (let index = 0; index < messages.length; index += 1) {
+          if (cancelled) return;
+
+          setCurrentIndex(index);
+          setStatus('rendering');
+          await wait(900);
+
+          if (cancelled) return;
+
+          setStatus('capturing');
+          await wait(150);
+
+          const el = containerRef.current;
+          if (!el) continue;
+
+          let blob: Blob | null = null;
+          for (let attempt = 0; attempt < 4; attempt += 1) {
+            try {
+              blob = await toBlob(el, {
+                backgroundColor: '#000000',
+                pixelRatio: 2,
+                cacheBust: true,
+              });
+
+              if (blob) break;
+            } catch {
+              await wait(350);
+            }
           }
+
+          if (!blob) {
+            throw new Error(`Impossibile generare lo screenshot del messaggio ${index + 1}`);
+          }
+
+          if (cancelled) return;
+
+          setStatus('downloading');
+          await downloadBlob(blob, `msg-${String(index + 1).padStart(3, '0')}.png`);
+          await wait(900);
         }
 
-        if (dataUrl) {
-          await downloadDataUrl(dataUrl, `msg-${String(currentIndex + 1).padStart(3, '0')}.png`);
-        }
+        if (cancelled) return;
+
+        setStatus('done');
+        toast.success(`${messages.length} screenshot scaricati!`);
+        onComplete();
       } catch (err) {
-        console.error(`Error exporting message ${currentIndex + 1}:`, err);
+        console.error('Error exporting screenshots:', err);
+        toast.error('Errore durante il download degli screenshot');
+        onComplete();
       }
+    };
 
-      setCurrentIndex(prev => prev + 1);
-    }, 800);
+    void exportSequentially();
 
-    return () => clearTimeout(renderTimeout);
-  }, [currentIndex, messages.length]);
+    return () => {
+      cancelled = true;
+    };
+  }, [downloadBlob, messages, onComplete, wait]);
 
   const msg = currentIndex >= 0 && currentIndex < messages.length ? messages[currentIndex] : null;
   if (!msg) return (
@@ -96,7 +130,13 @@ const ScreenshotExporter: React.FC<ScreenshotExporterProps> = ({ messages, getCh
       <div className="text-center text-foreground mb-4 absolute top-4 space-y-1">
         <p className="text-sm font-medium">Esportazione {currentIndex + 1}/{messages.length}</p>
         <p className="text-xs text-muted-foreground">
-          {status === 'rendering' ? 'Rendering...' : status === 'capturing' ? 'Cattura in corso...' : ''}
+          {status === 'rendering'
+            ? 'Preparazione messaggio...'
+            : status === 'capturing'
+              ? 'Cattura in corso...'
+              : status === 'downloading'
+                ? 'Download in corso...'
+                : ''}
         </p>
       </div>
 
